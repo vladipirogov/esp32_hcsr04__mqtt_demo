@@ -6,10 +6,6 @@
  */
 #include <pid.h>
 
-#include "stdbool.h"
-#include <esp_timer.h>
-#include <stdio.h>
-
 Pid::Pid(Reference *in_reference, const Parameters *source) {
 
 	this->reference = in_reference;

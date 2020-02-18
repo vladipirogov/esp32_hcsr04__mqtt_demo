@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 #include "stdbool.h"
+#include <esp_timer.h>
+#include <stdio.h>
 
 #define AUTOMATIC	1
 #define MANUAL	0
