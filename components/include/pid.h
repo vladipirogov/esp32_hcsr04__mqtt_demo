@@ -15,8 +15,6 @@
 #define MANUAL	0
 #define DIRECT  0
 #define REVERSE  1
-#define P_ON_M 0
-#define P_ON_E 1
 #define REFERENCE "reference"
 #define PARAM "param"
 
@@ -48,8 +46,6 @@ class Pid {
 
 public:
 
-
-
   //commonly used functions **************************************************************************
    Pid(Reference * reference, const Parameters *source);//   Setpoint.  Initial tuning parameters are also set here.
                                           //   (overload for specifying proportional mode)
@@ -65,14 +61,10 @@ public:
 										                      //   it's likely the user will want to change this depending on
 										                      //   the application
 
-
-
   //available but not commonly used functions ********************************************************
     void pid_set_tunings(float, float,       // * While most users will set the tunings once in the
                     float);         	    //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
-    void pid_set_tunings(float, float,       // * overload for specifying proportional mode
-                    float, int);
 
 	void pid_set_controller_direction(int);	  // * Sets the Direction, or "Action" of the controller. DIRECT
 										  //   means the output will increase when error is positive. REVERSE
@@ -88,7 +80,7 @@ public:
 private:
 	 unsigned long last_time;
 	 float output_sum, last_input;
-	 bool inAuto, pOnE;
+	 bool in_auto;
 	 Parameters parameters;
 	 Reference *reference;
 

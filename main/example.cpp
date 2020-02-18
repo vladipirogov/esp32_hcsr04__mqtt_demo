@@ -10,8 +10,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "sdkconfig.h"
-#include "../components/include/MPU6050.h"
-#include "../components/include/MPU6050_6Axis_MotionApps20.h"
+#include <MPU6050.h>
+#include <MPU6050_6Axis_MotionApps20.h>
 
 #define PIN_SDA 22
 #define PIN_CLK 21

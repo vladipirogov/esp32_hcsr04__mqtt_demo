@@ -31,7 +31,7 @@ THE SOFTWARE.
 ===============================================
 */
 
-#include "../include/I2Cdev.h"
+#include <I2Cdev.h>
 
 #include <esp_log.h>
 #include <esp_err.h>
