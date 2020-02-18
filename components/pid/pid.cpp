@@ -4,7 +4,7 @@
  *  Created on: 8 февр. 2020 г.
  *      Author: admin
  */
-#include "../include/pid.h"
+#include <pid.h>
 
 #include "stdbool.h"
 #include <esp_timer.h>
