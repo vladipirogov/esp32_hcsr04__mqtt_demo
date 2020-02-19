@@ -39,7 +39,7 @@ void task_initI2C(void *ignore) {
 	vTaskDelete(NULL);
 }
 
-void task_display(void*){
+void task_display(void* xQueue){
 	printf("Initialilization MPU6050\n");
 	MPU6050 mpu = MPU6050();
 	mpu.initialize();
@@ -77,7 +77,7 @@ void task_display(void*){
 			printf("YAW: %3.1f, ", ypr[0] * 180/M_PI);
 			printf("PITCH: %3.1f, ", pitch);
 			printf("ROLL: %3.1f \n", ypr[2] * 180/M_PI);
-			xQueueSend( xQueue, &pitch, pdMS_TO_TICKS( 200 ) );
+			xQueueSend( (QueueHandle_t)xQueue, &pitch, pdMS_TO_TICKS( 200 ) );
 	    }
 
 	    //Best result is to match with DMP refresh rate

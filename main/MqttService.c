@@ -14,6 +14,7 @@ static char *TAG = "MQTTS_SAMPLE";
 static void(*setup_pid_parameters)(char *);
 static EventGroupHandle_t wifi_event_group;
 static esp_mqtt_client_handle_t client = NULL;
+static EventGroupHandle_t mqtt_event_group = NULL;
 
 void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
@@ -127,11 +128,10 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 /**
  *
  */
-void mqtt_app_start(void(*setup_parameters)(char *))
+void mqtt_app_start(void(*setup_parameters)(char *), EventGroupHandle_t event_group)
 {
-	xQueue = xQueueCreate( 2, sizeof( uint32_t ) );
 	setup_pid_parameters = setup_parameters;
-	mqtt_event_group = xEventGroupCreate();
+	mqtt_event_group = event_group;
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "mqtt://mqtt.eclipse.org:1883",    // for mqtt over tcp
         .event_handle =  mqtt_event_handler,

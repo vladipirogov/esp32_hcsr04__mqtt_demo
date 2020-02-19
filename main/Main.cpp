@@ -21,6 +21,11 @@
 #include "include/ServoService.h"
 #include "include/UltrasonicService.h"
 
+#define PUBLISH_TOPIC "/topic/publish/esp2py"
+
+QueueHandle_t xQueue = NULL;
+EventGroupHandle_t mqtt_event_group;
+
 
 extern "C" {
 	void app_main(void);
@@ -48,7 +53,7 @@ void blink(void *param) {
 		xQueueReceive( xQueue, &data, pdMS_TO_TICKS( 200 ) );
 		char str[10];
 		sprintf(str, "%f", data);
-		int msg_id = mqtt_client_publish("/topic/publish/esp2py", str);
+		int msg_id = mqtt_client_publish(PUBLISH_TOPIC, str);
 	  /* Blink off (output low) */
 	        gpio_set_level(GPIO_NUM_5, 0);
 	        vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -65,18 +70,21 @@ void blink(void *param) {
  */
 void app_main(void)
 {
+	xQueue = xQueueCreate( 2, sizeof( uint32_t ) );
+	mqtt_event_group = xEventGroupCreate();
+
 	flash_init();
 	servo_init();
 	pid_init();
     wifi_init();
-    mqtt_app_start(setup_pid_parameters);
+    mqtt_app_start(setup_pid_parameters, mqtt_event_group);
 
     xTaskCreate(&task_initI2C, "mpu_task", 2048, NULL, 5, NULL);
     vTaskDelay(500/portTICK_PERIOD_MS);
-    xTaskCreate(&task_display, "disp_task", 8192, NULL, 5, NULL);
-    xTaskCreate(pid_control, "pid_control", 8192, NULL, 5, NULL);
+    xTaskCreate(&task_display, "disp_task", 8192, ( void * )xQueue, 5, NULL);
+    xTaskCreate(pid_control, "pid_control", 8192, ( void * )xQueue, 5, NULL);
 
 	//xTaskCreate(ultrasonic_control, "ultrasonic_control", configMINIMAL_STACK_SIZE * 3, NULL, 24, NULL);
 
-    xTaskCreate(blink, "blink", configMINIMAL_STACK_SIZE*5, NULL, 24, NULL);
+    xTaskCreate(blink, "blink", configMINIMAL_STACK_SIZE*5, NULL, 5, NULL);
 }

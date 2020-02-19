@@ -81,13 +81,14 @@ void setup_pid_parameters(char *data) {
 	}
 }
 
-void pid_control(void*) {
+void pid_control(void* xQueue) {
 while (true) {
 	float data = 0.0;
-	xQueueReceive( xQueue, &data, pdMS_TO_TICKS( 200 ) );
+	xQueueReceive( (QueueHandle_t)xQueue, &data, pdMS_TO_TICKS( 200 ) );
 	reference.input = data;
 	pid->pid_compute();
-	servo_control((uint32_t)reference.output);
+	uint32_t angle = reference.output;
+	servo_control(angle);
 	vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 }

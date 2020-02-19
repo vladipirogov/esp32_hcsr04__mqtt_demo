@@ -18,9 +18,6 @@ extern "C" {
 #include "freertos/queue.h"
 #include "esp_log.h"
 
-inline EventGroupHandle_t mqtt_event_group;
-inline  QueueHandle_t xQueue = NULL;
-
 void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data);
 
@@ -31,7 +28,7 @@ void wifi_init(void);
 
 esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
 
-void mqtt_app_start(void(*setup_parameters)(char *));
+void mqtt_app_start(void(*setup_parameters)(char *), EventGroupHandle_t event_group);
 
 int mqtt_client_publish(const char *topic, const char *data);
 
