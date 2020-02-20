@@ -5,10 +5,11 @@
 #include <freertos/task.h>
 #include "sdkconfig.h"
 #include <ultrasonic.h>
+#include "freertos/queue.h"
 
 #define MAX_DISTANCE_CM 500 // 5m max
 
-void ultrasonic_control(void *data)
+void ultrasonic_control(void *uQueue)
 {
     ultrasonic_sensor_t sensor;
         sensor.trigger_pin = GPIO_NUM_17;
@@ -39,8 +40,10 @@ void ultrasonic_control(void *data)
                     printf("%d\n", res);
             }
         }
-        else
+        else {
             printf("Distance: %d cm\n", distance);
+            xQueueSend( (QueueHandle_t)uQueue, &distance, pdMS_TO_TICKS( 100 ) );
+        }
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }

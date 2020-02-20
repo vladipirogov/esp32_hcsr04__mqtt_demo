@@ -17,8 +17,9 @@
 #define MANUAL	0
 #define DIRECT  0
 #define REVERSE  1
-#define REFERENCE "reference"
+#define REFERENCE "ref"
 #define PARAM "param"
+#define MODE "mode"
 
 typedef union Param {
 	 	uint64_t int_val;
@@ -69,7 +70,7 @@ public:
 private:
 
 	 unsigned long last_time;
-	 float output_sum, last_input;
+	 float output_sum, last_error=0;
 	 bool in_auto;
 	 Parameters parameters;
 	 Reference *reference;

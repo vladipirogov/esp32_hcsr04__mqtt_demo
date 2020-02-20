@@ -77,7 +77,7 @@ void task_display(void* xQueue){
 			printf("YAW: %3.1f, ", ypr[0] * 180/M_PI);
 			printf("PITCH: %3.1f, ", pitch);
 			printf("ROLL: %3.1f \n", ypr[2] * 180/M_PI);
-			xQueueSend( (QueueHandle_t)xQueue, &pitch, pdMS_TO_TICKS( 200 ) );
+			xQueueSend( (QueueHandle_t)xQueue, &pitch, pdMS_TO_TICKS( 100 ) );
 	    }
 
 	    //Best result is to match with DMP refresh rate

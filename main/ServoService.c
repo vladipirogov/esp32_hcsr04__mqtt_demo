@@ -53,5 +53,5 @@ void servo_control(uint32_t reference) {
 	printf("Angle of rotation: %d\n", reference);
 	uint32_t angle = servo_per_degree_init(reference);
 	printf("pulse width: %dus\n", angle);
-	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, reference);
+	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
 }

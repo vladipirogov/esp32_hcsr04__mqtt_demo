@@ -20,10 +20,14 @@
 #include "esp_system.h"
 #include "include/ServoService.h"
 #include "include/UltrasonicService.h"
+#include <ds18b20.h>
 
-#define PUBLISH_TOPIC "/topic/publish/esp2py"
+#define PITCH_TOPIC "/topic/publish/esp2py"
+#define ULTRASONIC_TOPIC "/topic/publish/ultrasonic"
+#define TEMPERATURE_TOPIC "/topic/publish/temperature"
 
 QueueHandle_t xQueue = NULL;
+QueueHandle_t uQueue = NULL;
 EventGroupHandle_t mqtt_event_group;
 
 
@@ -46,22 +50,41 @@ void blink(void *param) {
     gpio_pad_select_gpio(GPIO_NUM_5);
     /* Set the GPIO as a push/pull output */
     gpio_set_direction(GPIO_NUM_5, GPIO_MODE_OUTPUT);
+    float angle = 0.0;
+    uint32_t distance = 0;
+    char angle_str[10], distance_str[10];
 
 	while (true) {
+		angle = 0.0;
+		distance = 0;
 		xEventGroupWaitBits(mqtt_event_group, BIT1, false, true, portMAX_DELAY);
-		float data = 0.0;
-		xQueueReceive( xQueue, &data, pdMS_TO_TICKS( 200 ) );
-		char str[10];
-		sprintf(str, "%f", data);
-		int msg_id = mqtt_client_publish(PUBLISH_TOPIC, str);
+		xQueueReceive( xQueue, &angle, pdMS_TO_TICKS( 100 ) );
+		sprintf(angle_str, "%f", angle);
+		mqtt_client_publish(PITCH_TOPIC, angle_str);
+
+		xQueueReceive( uQueue, &distance, pdMS_TO_TICKS( 100 ) );
+		sprintf(distance_str, "%d", distance);
+		mqtt_client_publish(ULTRASONIC_TOPIC, distance_str);
 	  /* Blink off (output low) */
 	        gpio_set_level(GPIO_NUM_5, 0);
-	        vTaskDelay(1000 / portTICK_PERIOD_MS);
+	        vTaskDelay(500 / portTICK_PERIOD_MS);
 	        /* Blink on (output high) */
 	        gpio_set_level(GPIO_NUM_5, 1);
-	        vTaskDelay(1000 / portTICK_PERIOD_MS);
+	        vTaskDelay(500 / portTICK_PERIOD_MS);
 	}
 
+}
+
+void ds18b20_task(void *pvParameters){
+	ds18b20_init(14);
+	char str[10];
+  while (true) {
+	 float temp = ds18b20_get_temp();
+	 sprintf(str, "%f", temp);
+	 mqtt_client_publish(TEMPERATURE_TOPIC, str);
+    printf("Temperature: %0.1f\n", temp);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
 }
 
 
@@ -71,6 +94,7 @@ void blink(void *param) {
 void app_main(void)
 {
 	xQueue = xQueueCreate( 2, sizeof( uint32_t ) );
+	uQueue = xQueueCreate( 1, sizeof( uint32_t ) );
 	mqtt_event_group = xEventGroupCreate();
 
 	flash_init();
@@ -84,7 +108,9 @@ void app_main(void)
     xTaskCreate(&task_display, "disp_task", 8192, ( void * )xQueue, 5, NULL);
     xTaskCreate(pid_control, "pid_control", 8192, ( void * )xQueue, 5, NULL);
 
-	//xTaskCreate(ultrasonic_control, "ultrasonic_control", configMINIMAL_STACK_SIZE * 3, NULL, 24, NULL);
+	xTaskCreate(ultrasonic_control, "ultrasonic_control", configMINIMAL_STACK_SIZE * 3, ( void * )uQueue, 5, NULL);
 
     xTaskCreate(blink, "blink", configMINIMAL_STACK_SIZE*5, NULL, 5, NULL);
+
+    xTaskCreate(ds18b20_task, "ds18b20_task", configMINIMAL_STACK_SIZE*5, NULL, 5, NULL);
 }

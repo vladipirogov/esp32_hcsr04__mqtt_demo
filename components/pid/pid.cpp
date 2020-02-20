@@ -21,7 +21,11 @@ Pid::Pid(Reference *in_reference, const Parameters *source) {
 
 
 bool Pid::pid_compute() {
-   if(!this->in_auto) return false;
+   if(!this->in_auto) {
+	   printf("Pid setpoint = %f\n", reference->setpoint.float_val);
+	   reference->output = reference->setpoint.float_val;
+	   return false;
+   }
 
    unsigned long now = esp_timer_get_time()/1000;
    unsigned long time_change = (now - last_time);
@@ -30,7 +34,7 @@ bool Pid::pid_compute() {
 
       float input = reference->input;
       float error = reference->setpoint.float_val - input;
-      float dInput = (input - last_input)/time_change;
+      float dInput = (error - last_error)/time_change;
       output_sum+= (parameters.ki.float_val * error);
       if(output_sum > parameters.max_limit) output_sum= parameters.max_limit;
       else if(output_sum < parameters.min_limit) output_sum= parameters.min_limit;
@@ -54,7 +58,7 @@ bool Pid::pid_compute() {
 		printf("------------------");
 		printf("------------------\n");
 
-      last_input = input;
+      last_error = error;
       last_time = now;
 	    return true;
    }
@@ -93,7 +97,7 @@ void Pid::pid_set_sample_time(int new_sample_time) {
 
 void Pid::initialize(void) {
    output_sum = reference->output;
-   last_input = reference->input;
+   //last_input = reference->input;
    if(output_sum > parameters.max_limit) output_sum = parameters.max_limit;
    else if(output_sum < parameters.min_limit) output_sum = parameters.min_limit;
 }

@@ -19,8 +19,8 @@ void pid_init(void) {
 	//Initialize pid parameters
 	printf("Initialization PID\n");
 	    Parameters parameters;
-	    	parameters.min_limit = 0;
-			parameters.max_limit = 90;
+	    	parameters.min_limit = -90.0;
+			parameters.max_limit = 90.0;
 			parameters.sample_time = 100;
 			parameters.direction = DIRECT;
 
@@ -76,6 +76,10 @@ void setup_pid_parameters(char *data) {
 		pid->pid_setpoint(&setpoint.float_val);
 		write_param_to_flash("setpoint", reference.setpoint.int_val);
 	}
+	else if(strcmp(action->valuestring, MODE) == 0) {
+		cJSON *mode_json = cJSON_GetObjectItem(root,"mode");
+		pid->pid_set_mode(mode_json->valueint);
+	}
 	else {
 		printf("Can not setup pid values!");
 	}
@@ -84,7 +88,7 @@ void setup_pid_parameters(char *data) {
 void pid_control(void* xQueue) {
 while (true) {
 	float data = 0.0;
-	xQueueReceive( (QueueHandle_t)xQueue, &data, pdMS_TO_TICKS( 200 ) );
+	xQueueReceive( (QueueHandle_t)xQueue, &data, pdMS_TO_TICKS( 100 ) );
 	reference.input = data;
 	pid->pid_compute();
 	uint32_t angle = reference.output;
