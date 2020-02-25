@@ -1,16 +1,4 @@
-#include <stdio.h>
-#include "string.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "freertos/queue.h"
-#include "cJSON.h"
-#include <pid.h>
-#include "include/PersistService.h"
-#include "freertos/queue.h"
-#include "include/MqttService.h"
-#include "include/ServoService.h"
-
+#include "include/PidService.h"
 
 Reference reference;
 Pid *pid;
@@ -19,8 +7,8 @@ void pid_init(void) {
 	//Initialize pid parameters
 	printf("Initialization PID\n");
 	    Parameters parameters;
-	    	parameters.min_limit = -90.0;
-			parameters.max_limit = 90.0;
+	    	parameters.min_limit = -180.0;
+			parameters.max_limit = 180.0;
 			parameters.sample_time = 100;
 			parameters.direction = DIRECT;
 
@@ -37,9 +25,9 @@ void pid_init(void) {
 }
 
 /**
- * {"kp": 20, "ki":0, "kd":0}
+ * {"kp": 1, "ki":0, "kd":0}
  */
-void setup_pid_parameters(char *data) {
+void setup_parameters(char *data) {
 	 //printf("Setup pid parameters: %.*s\r\n", data);
 	cJSON *root = cJSON_Parse(data);
 	cJSON *action = cJSON_GetObjectItem(root,"action");
@@ -83,16 +71,15 @@ void setup_pid_parameters(char *data) {
 	else {
 		printf("Can not setup pid values!");
 	}
+	cJSON_Delete(root);
 }
 
-void pid_control(void* xQueue) {
-while (true) {
-	float data = 0.0;
-	xQueueReceive( (QueueHandle_t)xQueue, &data, pdMS_TO_TICKS( 100 ) );
+float map_val(float val, float I_Min, float I_Max, float O_Min, float O_Max){
+    return(val/(I_Max-I_Min)*(O_Max-O_Min) + O_Min);
+}
+
+float pid_control(float data) {
 	reference.input = data;
 	pid->pid_compute();
-	uint32_t angle = reference.output;
-	servo_control(angle);
-	vTaskDelay(100 / portTICK_PERIOD_MS);
-}
+	return  reference.output > 0 ? reference.output : 90 + reference.output ;
 }

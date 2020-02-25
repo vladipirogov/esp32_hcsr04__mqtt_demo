@@ -69,6 +69,7 @@ bool Pid::pid_compute() {
 void Pid::pid_set_tunings(float kp, float ki, float kd) {
    if (kp<0 || ki<0 || kd<0) return;
 
+   output_sum = 0;
    parameters.kp.float_val = kp;
    parameters.ki.float_val = ki;
    parameters.kd.float_val = kd;

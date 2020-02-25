@@ -3,9 +3,9 @@
 #include "soc/mcpwm_periph.h"
 
 //You can get these value from the datasheet of servo you use, in general pulse width varies between 1000 to 2000 microsecond
-#define SERVO_MIN_PULSEWIDTH 1000 //Minimum pulse width in microsecond
-#define SERVO_MAX_PULSEWIDTH 2000 //Maximum pulse width in microsecond
-#define SERVO_MAX_DEGREE 90 //Maximum angle in degree upto which servo can rotate
+#define SERVO_MIN_PULSEWIDTH 544 //Minimum pulse width in microsecond
+#define SERVO_MAX_PULSEWIDTH 2400 //Maximum pulse width in microsecond
+#define SERVO_MAX_DEGREE 180 //Maximum angle in degree upto which servo can rotate
 
 /**
  *
@@ -50,8 +50,8 @@ void servo_init(void) {
 void servo_control(uint32_t reference) {
 	if(reference > SERVO_MAX_DEGREE)
 				reference = SERVO_MAX_DEGREE;
-	printf("Angle of rotation: %d\n", reference);
+	//printf("Angle of rotation: %d\n", reference);
 	uint32_t angle = servo_per_degree_init(reference);
-	printf("pulse width: %dus\n", angle);
+	//printf("pulse width: %dus\n", angle);
 	mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, angle);
 }

@@ -14,6 +14,9 @@
 #include <MPU6050_6Axis_MotionApps20.h>
 #include "freertos/queue.h"
 #include "include/MqttService.h"
+#include "include/ServoService.h"
+#include "include/PidService.h"
+#include "include/QueueService.h"
 
 #define PIN_SDA 22
 #define PIN_CLK 21
@@ -36,7 +39,15 @@ void task_initI2C(void *ignore) {
 	conf.master.clk_speed = 400000;
 	ESP_ERROR_CHECK(i2c_param_config(I2C_NUM_0, &conf));
 	ESP_ERROR_CHECK(i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0));
+
+	servo_init();
+	pid_init();
+
 	vTaskDelete(NULL);
+}
+
+void setup_pid_parameters(char *data) {
+	setup_parameters(data);
 }
 
 void task_display(void* xQueue){
@@ -52,6 +63,10 @@ void task_display(void* xQueue){
 	mpu.setZAccelOffset(1788);
 
 	mpu.setDMPEnabled(true);
+
+	char x_data[sizeof(int32_t)];
+	portBASE_TYPE xStatus;
+	Tdata data;
 
 	while(1){
 	    mpuIntStatus = mpu.getIntStatus();
@@ -74,10 +89,23 @@ void task_display(void* xQueue){
 			mpu.dmpGetGravity(&gravity, &q);
 			mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 			float pitch = ypr[1] * 180/M_PI;
-			printf("YAW: %3.1f, ", ypr[0] * 180/M_PI);
+			float roll = ypr[2] * 180/M_PI;
+			float yaw = ypr[0] * 180/M_PI;
+			printf("YAW: %3.1f, ", yaw);
 			printf("PITCH: %3.1f, ", pitch);
-			printf("ROLL: %3.1f \n", ypr[2] * 180/M_PI);
-			xQueueSend( (QueueHandle_t)xQueue, &pitch, pdMS_TO_TICKS( 100 ) );
+			printf("ROLL: %3.1f \n", roll);
+
+			float angle =  pid_control(pitch + 180);
+			servo_control((uint32_t)angle);
+
+			itoa((int32_t)pitch+180, x_data, 10);
+			data.type = GYROSCOPE;
+			data.value = x_data;
+
+			xStatus = xQueueSend( (QueueHandle_t)xQueue, (void *)&data, 0);
+			if( xStatus != pdPASS ) {
+				printf("Could not send to the queue from gyroscope.\r\n");
+			}
 	    }
 
 	    //Best result is to match with DMP refresh rate

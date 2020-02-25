@@ -21,13 +21,12 @@
 #include "include/ServoService.h"
 #include "include/UltrasonicService.h"
 #include <ds18b20.h>
+#include "cJSON.h"
+#include "include/QueueService.h"
 
-#define PITCH_TOPIC "/topic/publish/esp2py"
-#define ULTRASONIC_TOPIC "/topic/publish/ultrasonic"
-#define TEMPERATURE_TOPIC "/topic/publish/temperature"
+#define TOPIC "/topic/publish/esp2py"
 
-QueueHandle_t xQueue = NULL;
-QueueHandle_t uQueue = NULL;
+QueueHandle_t gQueue = NULL;
 EventGroupHandle_t mqtt_event_group;
 
 
@@ -38,8 +37,6 @@ extern "C" {
 extern void task_initI2C(void*);
 extern void task_display(void*);
 extern void setup_pid_parameters(char *data);
-extern void pid_init(void);
-extern void pid_control(void*);
 
 
 /**
@@ -50,21 +47,8 @@ void blink(void *param) {
     gpio_pad_select_gpio(GPIO_NUM_5);
     /* Set the GPIO as a push/pull output */
     gpio_set_direction(GPIO_NUM_5, GPIO_MODE_OUTPUT);
-    float angle = 0.0;
-    uint32_t distance = 0;
-    char angle_str[10], distance_str[10];
 
 	while (true) {
-		angle = 0.0;
-		distance = 0;
-		xEventGroupWaitBits(mqtt_event_group, BIT1, false, true, portMAX_DELAY);
-		xQueueReceive( xQueue, &angle, pdMS_TO_TICKS( 100 ) );
-		sprintf(angle_str, "%f", angle);
-		mqtt_client_publish(PITCH_TOPIC, angle_str);
-
-		xQueueReceive( uQueue, &distance, pdMS_TO_TICKS( 100 ) );
-		sprintf(distance_str, "%d", distance);
-		mqtt_client_publish(ULTRASONIC_TOPIC, distance_str);
 	  /* Blink off (output low) */
 	        gpio_set_level(GPIO_NUM_5, 0);
 	        vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -75,42 +59,68 @@ void blink(void *param) {
 
 }
 
-void ds18b20_task(void *pvParameters){
+void ds18b20_task(void *param) {
 	ds18b20_init(14);
-	char str[10];
+	char x_data[10];
+	portBASE_TYPE xStatus;
+	Tdata data;
+
   while (true) {
-	 float temp = ds18b20_get_temp();
-	 sprintf(str, "%f", temp);
-	 mqtt_client_publish(TEMPERATURE_TOPIC, str);
-    printf("Temperature: %0.1f\n", temp);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+		float temp = ds18b20_get_temp();
+		sprintf(x_data, "%f", temp);
+		data.type = TEMPERATURE;
+		data.value = x_data;
+		xStatus = xQueueSend((QueueHandle_t )gQueue, (void* )&data, 0);
+		if (xStatus != pdPASS) {
+			printf("Could not send to the queue from ds18b20.\r\n");
+		}
+	 printf("Temperature: %0.1f\n", temp);
+	 vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
 
+
+void send_mqtt_task(void *param) {
+	portBASE_TYPE gStatus;
+	Tdata g_data;
+	char *buffer;
+
+	while (true) {
+		xEventGroupWaitBits(mqtt_event_group, BIT1, false, true, portMAX_DELAY);
+		gStatus = xQueueReceive(gQueue, &g_data, pdMS_TO_TICKS( 1000 ));
+		if (gStatus == pdPASS) {
+			cJSON *root = cJSON_CreateObject();
+			cJSON *type = cJSON_CreateString(g_data.type);
+			cJSON *value = cJSON_CreateString(g_data.value);
+			cJSON_AddItemToObject(root, "type", type);
+			cJSON_AddItemToObject(root, "value", value);
+			buffer = cJSON_Print(root);
+			mqtt_client_publish(TOPIC, buffer);
+			cJSON_Delete(root);
+		} else {
+			printf("Could not receive from the queue.\r\n");
+		}
+
+	}
+}
 
 /**
  *
  */
 void app_main(void)
 {
-	xQueue = xQueueCreate( 2, sizeof( uint32_t ) );
-	uQueue = xQueueCreate( 1, sizeof( uint32_t ) );
+	gQueue = xQueueCreate( 1, sizeof( Tdata ) );
 	mqtt_event_group = xEventGroupCreate();
 
 	flash_init();
-	servo_init();
-	pid_init();
     wifi_init();
     mqtt_app_start(setup_pid_parameters, mqtt_event_group);
 
     xTaskCreate(&task_initI2C, "mpu_task", 2048, NULL, 5, NULL);
     vTaskDelay(500/portTICK_PERIOD_MS);
-    xTaskCreate(&task_display, "disp_task", 8192, ( void * )xQueue, 5, NULL);
-    xTaskCreate(pid_control, "pid_control", 8192, ( void * )xQueue, 5, NULL);
-
-	xTaskCreate(ultrasonic_control, "ultrasonic_control", configMINIMAL_STACK_SIZE * 3, ( void * )uQueue, 5, NULL);
-
+    xTaskCreate(&task_display, "disp_task", 8192, ( void * )gQueue, 5, NULL);
+	xTaskCreate(ultrasonic_control, "ultrasonic_control", configMINIMAL_STACK_SIZE * 3, ( void * )gQueue, 5, NULL);
     xTaskCreate(blink, "blink", configMINIMAL_STACK_SIZE*5, NULL, 5, NULL);
-
     xTaskCreate(ds18b20_task, "ds18b20_task", configMINIMAL_STACK_SIZE*5, NULL, 5, NULL);
+    xTaskCreate(send_mqtt_task, "send_mqtt_task", configMINIMAL_STACK_SIZE*5, NULL, 10, NULL);
 }
