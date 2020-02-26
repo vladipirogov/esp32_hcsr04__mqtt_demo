@@ -7,9 +7,6 @@
 #include <include/MqttService.h>
 #include "esp_err.h"
 
-#define CONFIG_WIFI_SSID "XiaomyAP"
-//#define CONFIG_WIFI_SSID "TP-LINK_AEE4CE"
-#define CONFIG_WIFI_PASSWORD ""
 
 static char *TAG = "MQTTS_SAMPLE";
 static void(*setup_pid_parameters)(char *);
@@ -67,13 +64,13 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD,
+            .ssid = CONFIG_ESP_WIFI_SSID,
+            .password = CONFIG_ESP_WIFI_PASSWORD,
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-    ESP_LOGI(TAG, "start the WIFI SSID:[%s] password:[%s]", CONFIG_WIFI_SSID, "******");
+    ESP_LOGI(TAG, "start the WIFI SSID:[%s] password:[%s]", CONFIG_ESP_WIFI_SSID, "******");
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "Waiting for wifi");
     xEventGroupWaitBits(wifi_event_group, BIT0, false, true, portMAX_DELAY);

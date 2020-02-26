@@ -96,6 +96,7 @@ void send_mqtt_task(void *param) {
 			cJSON_AddItemToObject(root, "value", value);
 			buffer = cJSON_Print(root);
 			mqtt_client_publish(TOPIC, buffer);
+			free(buffer);
 			cJSON_Delete(root);
 		} else {
 			printf("Could not receive from the queue.\r\n");
@@ -109,7 +110,7 @@ void send_mqtt_task(void *param) {
  */
 void app_main(void)
 {
-	gQueue = xQueueCreate( 1, sizeof( Tdata ) );
+	gQueue = xQueueCreate( 3, sizeof( Tdata ) );
 	mqtt_event_group = xEventGroupCreate();
 
 	flash_init();
